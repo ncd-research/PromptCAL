@@ -7,7 +7,7 @@ mkdir -p ${SAVE_DIR}/kmeans
 
 python -m methods.clustering.extract_features \
   --dataset scars \
-  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/scars/model_best.pt' \
+  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/scars/model.pt' \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \

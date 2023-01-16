@@ -33,6 +33,7 @@ class VPT_ViT(VisionTransformer):
 
         assert self.n_shallow_prompts < self.num_prompts
 
+        # ex. cls_token: (1, 1, 768) and prompt_tokens: (12, 5, 768)
         self.prompt_tokens = nn.Parameter(torch.zeros(depth, self.num_prompts, embed_dim))
         self.vpt_drop = nn.ModuleList([nn.Dropout(p=vpt_dropout) for d in range(depth)])
 
@@ -95,7 +96,7 @@ class VPT_ViT(VisionTransformer):
         return torch.cat((class_pos_embed, patch_pos_embed), dim=1)
 
     def prepare_tokens(self, x):
-        B, nc, w, h = x.shape
+        B, nc, w, h = x.shape   # batch_size, channel, width, height
         x = self.patch_embed(x)  # B, L, D
 
         # add the [CLS] and [PROMPT] token to the embed patch tokens
@@ -112,18 +113,30 @@ class VPT_ViT(VisionTransformer):
         x = self.prepare_tokens(x)  # B, L, D
         B = x.size(0)
         n_vpt_layer = self.prompt_tokens.size(0) - 1
+
+        # Notice: x = (128, 202, 768)
+        # -> cls_token (128, 1, 768) + prompt_token (128, 5, 768) + patch_emb (128, 196, 768)
+        
         for idx_layer, blk in enumerate(self.blocks):
-            x = blk(x)
+            x = blk(x)  
+
             if idx_layer < n_vpt_layer:
                 ### exclude precedent prompts
-                a = x[:, 0, :].unsqueeze(1) if self.n_shallow_prompts == 0 else x[:, :1 + self.n_shallow_prompts, :]
+                if self.n_shallow_prompts == 0:
+                    a = x[:, 0, :].unsqueeze(1)
+                else:
+                    a = x[:, :1 + self.n_shallow_prompts, :]
+
                 c = x[:, self.num_prompts + 1:, :]
+
                 ### generate prompt input
-                b = self.prompt_tokens[idx_layer + 1, self.n_shallow_prompts:, :].expand(B, -1,
-                                                                                         -1)  # corrected by i+1, origical i
+                b = self.prompt_tokens[idx_layer + 1, self.n_shallow_prompts:, :].expand(B, -1, -1)  # corrected by i+1, origical i
                 b = self.vpt_drop[idx_layer + 1](b)
+
                 x = torch.cat([a, b, c], dim=1)
+
         x = self.norm(x)
+
         if return_all_patches:
             return x
         else:

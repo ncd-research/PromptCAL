@@ -9,14 +9,13 @@ from utils.config import cifar_10_root, cifar_100_root
 class CustomCIFAR10(CIFAR10):
     """ wrapper with index returned
     """
-    def __init__(self, *args, **kwargs):
 
+    def __init__(self, *args, **kwargs):
         super(CustomCIFAR10, self).__init__(*args, **kwargs)
 
         self.uq_idxs = np.array(range(len(self)))
 
     def __getitem__(self, item):
-
         img, label = super().__getitem__(item)
         uq_idx = self.uq_idxs[item]
 
@@ -29,6 +28,7 @@ class CustomCIFAR10(CIFAR10):
 class CustomCIFAR100(CIFAR100):
     """ wrapper with index returned
     """
+
     def __init__(self, *args, **kwargs):
         super(CustomCIFAR100, self).__init__(*args, **kwargs)
 
@@ -42,18 +42,16 @@ class CustomCIFAR100(CIFAR100):
 
     def __len__(self):
         return len(self.targets)
-    
-\
 
-    
+
 def subsample_dataset(dataset, idxs, absolute=True):
     mask = np.zeros(len(dataset)).astype('bool')
-    if absolute==True:
+    if absolute == True:
         mask[idxs] = True
     else:
         idxs = set(idxs)
         mask = np.array([i in idxs for i in dataset.uq_idxs])
-        
+
     dataset.data = dataset.data[mask]
     dataset.targets = np.array(dataset.targets)[mask].tolist()
     dataset.uq_idxs = dataset.uq_idxs[mask]
@@ -82,7 +80,6 @@ def get_train_val_indices(train_dataset, val_split=0.1):
     train_idxs = []
     val_idxs = []
     for cls in train_classes:
-
         cls_idxs = np.where(train_dataset.targets == cls)[0]
 
         v_ = np.random.choice(cls_idxs, replace=False, size=((int(val_split * len(cls_idxs))),))
@@ -95,8 +92,7 @@ def get_train_val_indices(train_dataset, val_split=0.1):
 
 
 def get_cifar_10_datasets(train_transform, test_transform, train_classes=(0, 1, 8, 9),
-                       prop_train_labels=0.8, split_train_val=False, seed=0):
-
+                          prop_train_labels=0.8, split_train_val=False, seed=0):
     np.random.seed(seed)
 
     # Init entire training set
@@ -135,8 +131,7 @@ def get_cifar_10_datasets(train_transform, test_transform, train_classes=(0, 1, 
 
 
 def get_cifar_100_datasets(train_transform, test_transform, train_classes=range(80),
-                       prop_train_labels=0.8, split_train_val=False, seed=0):
-
+                           prop_train_labels=0.8, split_train_val=False, seed=0):
     np.random.seed(seed)
 
     # Init entire training set
@@ -175,9 +170,8 @@ def get_cifar_100_datasets(train_transform, test_transform, train_classes=range(
 
 
 ### >>>
-def get_cifar_100_datasets_with_gcdval(train_transform, test_transform, train_classes=range(80), 
-                                   prop_train_labels=0.8, split_train_val=True, seed=0, val_split=0.1):
-
+def get_cifar_100_datasets_with_gcdval(train_transform, test_transform, train_classes=range(80),
+                                       prop_train_labels=0.8, split_train_val=True, seed=0, val_split=0.1):
     np.random.seed(seed)
 
     # Init entire training set
@@ -190,27 +184,28 @@ def get_cifar_100_datasets_with_gcdval(train_transform, test_transform, train_cl
     train_dataset_labelled = subsample_dataset(train_dataset_labelled, subsample_indices)
     # All remaining samples into trainu
     unlabelled_indices = set(whole_training_set.uq_idxs) - set(train_dataset_labelled.uq_idxs)
-    train_dataset_unlabelled = subsample_dataset(deepcopy(whole_training_set), np.array(list(unlabelled_indices)), absolute=False)
-    
+    train_dataset_unlabelled = subsample_dataset(deepcopy(whole_training_set), np.array(list(unlabelled_indices)),
+                                                 absolute=False)
+
     # Split trainl into train/val
     train_idxs, val_idxs = get_train_val_indices(train_dataset_labelled, val_split=val_split)
     val_dataset_labelled = subsample_dataset(deepcopy(train_dataset_labelled), val_idxs)
     val_dataset_labelled.transform = test_transform
     train_dataset_labelled = subsample_dataset(deepcopy(train_dataset_labelled), train_idxs)
-    
+
     # Split trainu into train/val
     train_idxs, val_idxs = get_train_val_indices(train_dataset_unlabelled, val_split=val_split)
     val_dataset_unlabelled = subsample_dataset(deepcopy(train_dataset_unlabelled), val_idxs)
     val_dataset_unlabelled.transform = test_transform
     train_dataset_unlabelled = subsample_dataset(deepcopy(train_dataset_unlabelled), train_idxs)
-    
+
     val_dataset_unlabelled.transform = test_transform
-    
 
     # Get test set for all classes
     test_dataset = CustomCIFAR100(root=cifar_100_root, transform=test_transform, train=False)
 
-    print(f'total={len(whole_training_set)} train={len(train_dataset_labelled)} {len(train_dataset_unlabelled)} val={len(val_dataset_labelled)} {len(val_dataset_unlabelled)} test={len(test_dataset)}')
+    print(
+        f'total={len(whole_training_set)} train={len(train_dataset_labelled)} {len(train_dataset_unlabelled)} val={len(val_dataset_labelled)} {len(val_dataset_unlabelled)} test={len(test_dataset)}')
 
     all_datasets = {
         'train_labelled': train_dataset_labelled,
@@ -220,14 +215,15 @@ def get_cifar_100_datasets_with_gcdval(train_transform, test_transform, train_cl
     }
 
     return all_datasets
-### <<<
 
+
+### <<<
 
 
 if __name__ == '__main__':
 
     x = get_cifar_100_datasets(None, None, split_train_val=False,
-                         train_classes=range(80), prop_train_labels=0.5)
+                               train_classes=range(80), prop_train_labels=0.5)
 
     print('Printing lens...')
     for k, v in x.items():
