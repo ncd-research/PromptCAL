@@ -5,26 +5,26 @@ from torch.utils.data import DataLoader
 import numpy as np
 from sklearn.cluster import KMeans
 import torch
-from project_utils.cluster_utils import str2bool
-from project_utils.general_utils import seed_torch
-from project_utils.cluster_and_log_utils import log_accs_from_preds
+from utils.cluster_utils import str2bool
+from utils.general_utils import seed_torch
+from utils.cluster_and_log_utils import log_accs_from_preds
 
 from methods.clustering.feature_vector_dataset import FeatureVectorDataset
 from data.get_datasets import get_datasets, get_class_splits
 from methods.clustering.faster_mix_k_means_pytorch import K_Means as SemiSupKMeans
 
 from tqdm import tqdm
-from config import feature_extract_dir
+from utils.config import feature_extract_dir
 
 # TODO: Debug
 import warnings
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+from utils.cluster_utils import my_mixed_eval
 
-from project_utils.cluster_utils import my_mixed_eval
 
 def test_kmeans_semi_sup(merge_test_loader, args, K=None, mode='train'):
-
     """
     In this case, the test loader needs to have the labelled and unlabelled subsets of the training data
     """
@@ -34,13 +34,12 @@ def test_kmeans_semi_sup(merge_test_loader, args, K=None, mode='train'):
 
     all_feats = []
     targets = np.array([])
-    mask_lab = np.array([])     # From all the data, which instances belong to the labelled set
-    mask_cls = np.array([])     # From all the data, which instances belong to Old classes
+    mask_lab = np.array([])  # From all the data, which instances belong to the labelled set
+    mask_cls = np.array([])  # From all the data, which instances belong to Old classes
 
     print('Collating features...')
     # First extract all features
     for batch_idx, (feats, label, _, mask_lab_) in enumerate(tqdm(merge_test_loader)):
-
         feats = feats.to(device)
 
         feats = torch.nn.functional.normalize(feats, dim=-1)
@@ -48,7 +47,7 @@ def test_kmeans_semi_sup(merge_test_loader, args, K=None, mode='train'):
         all_feats.append(feats.cpu().numpy())
         targets = np.append(targets, label.cpu().numpy())
         mask_cls = np.append(mask_cls, np.array([True if x.item() in range(len(args.train_classes))
-                                        else False for x in label]))
+                                                 else False for x in label]))
         mask_lab = np.append(mask_lab, mask_lab_.cpu().bool().numpy())
 
     # -----------------------
@@ -59,18 +58,19 @@ def test_kmeans_semi_sup(merge_test_loader, args, K=None, mode='train'):
 
     all_feats = np.concatenate(all_feats)
 
-    l_feats = all_feats[mask_lab]       # Get labelled set
-    u_feats = all_feats[~mask_lab]      # Get unlabelled set
-    l_targets = targets[mask_lab]       # Get labelled targets
-    u_targets = targets[~mask_lab]       # Get unlabelled targets
+    l_feats = all_feats[mask_lab]  # Get labelled set
+    u_feats = all_feats[~mask_lab]  # Get unlabelled set
+    l_targets = targets[mask_lab]  # Get labelled targets
+    u_targets = targets[~mask_lab]  # Get unlabelled targets
 
     print('Fitting Semi-Supervised K-Means...')
     kmeans = SemiSupKMeans(k=K, tolerance=1e-4, max_iterations=args.max_kmeans_iter, init='k-means++',
-                           n_init=args.k_means_init, random_state=None, n_jobs=None, pairwise_batch_size=1024, mode=None)
+                           n_init=args.k_means_init, random_state=None, n_jobs=None, pairwise_batch_size=1024,
+                           mode=None)
 
     l_feats, u_feats, l_targets, u_targets = (torch.from_numpy(x).to(device) for
                                               x in (l_feats, u_feats, l_targets, u_targets))
-    
+
     kmeans.fit_mix(u_feats, l_feats, l_targets)
     all_preds = kmeans.labels_.cpu().numpy()
     u_targets = u_targets.cpu().numpy()
@@ -88,20 +88,21 @@ def test_kmeans_semi_sup(merge_test_loader, args, K=None, mode='train'):
     # -----------------------
     # EVALUATE
     # -----------------------
-    if mode=='train':
-        all_acc, old_acc, new_acc = log_accs_from_preds(y_true=u_targets, y_pred=preds, mask=mask, eval_funcs=args.eval_funcs,
+    if mode == 'train':
+        all_acc, old_acc, new_acc = log_accs_from_preds(y_true=u_targets, y_pred=preds, mask=mask,
+                                                        eval_funcs=args.eval_funcs,
                                                         save_name='SS-K-Means Train ACC Unlabelled', print_output=True)
         return all_acc, old_acc, new_acc, 0, kmeans
-    elif mode=='test':
-        all_acc, old_acc, new_acc = log_accs_from_preds(y_true=u_targets, y_pred=preds, mask=mask_cls, eval_funcs=args.eval_funcs,
+    elif mode == 'test':
+        all_acc, old_acc, new_acc = log_accs_from_preds(y_true=u_targets, y_pred=preds, mask=mask_cls,
+                                                        eval_funcs=args.eval_funcs,
                                                         save_name='SS-K-Means Train ACC Unlabelled', print_output=True)
         res, ratio = my_mixed_eval(u_targets, preds, mask_cls, all_feats)
         score = res['unlabelled_sil']
         return all_acc, old_acc, new_acc, score, kmeans
-    
-    
-def test_kmeans_inductive_gncd(merge_test_loader, args, K=None):
 
+
+def test_kmeans_inductive_gncd(merge_test_loader, args, K=None):
     """
     In this case, the test loader needs to have the labelled and unlabelled subsets of the training data
     """
@@ -111,12 +112,11 @@ def test_kmeans_inductive_gncd(merge_test_loader, args, K=None):
 
     all_feats = []
     targets = np.array([])
-    mask_cls = np.array([])     # From all the data, which instances belong to Old classes
+    mask_cls = np.array([])  # From all the data, which instances belong to Old classes
 
     print('Collating features...')
     # First extract all features
     for batch_idx, (feats, label, _) in enumerate(tqdm(merge_test_loader)):
-
         feats = feats.to(device)
 
         feats = torch.nn.functional.normalize(feats, dim=-1)
@@ -124,7 +124,7 @@ def test_kmeans_inductive_gncd(merge_test_loader, args, K=None):
         all_feats.append(feats.cpu().numpy())
         targets = np.append(targets, label.cpu().numpy())
         mask_cls = np.append(mask_cls, np.array([True if x.item() in range(len(args.train_classes))
-                                        else False for x in label]))
+                                                 else False for x in label]))
 
     # -----------------------
     # K-MEANS
@@ -134,7 +134,7 @@ def test_kmeans_inductive_gncd(merge_test_loader, args, K=None):
 
     print('Fitting Semi-Supervised K-Means...')
     kmeans = KMeans(n_clusters=K, max_iter=args.max_kmeans_iter, init='k-means++',
-                        n_init=args.k_means_init, random_state=None)
+                    n_init=args.k_means_init, random_state=None)
     kmeans.fit(all_feats)
     all_preds = kmeans.labels_
 
@@ -142,18 +142,17 @@ def test_kmeans_inductive_gncd(merge_test_loader, args, K=None):
     # EVALUATE
     # -----------------------
     print(f'best inertia={kmeans.inertia_}')
-    all_acc, old_acc, new_acc = log_accs_from_preds(y_true=targets, y_pred=all_preds, mask=mask_cls, eval_funcs=args.eval_funcs,
+    all_acc, old_acc, new_acc = log_accs_from_preds(y_true=targets, y_pred=all_preds, mask=mask_cls,
+                                                    eval_funcs=args.eval_funcs,
                                                     save_name='SS-K-Means Train ACC Unlabelled', print_output=True)
     return all_acc, old_acc, new_acc, 0, kmeans
-    
-
 
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-            description='cluster',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description='cluster',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--num_workers', default=8, type=int)
@@ -165,7 +164,7 @@ if __name__ == "__main__":
     parser.add_argument('--semi_sup', type=str2bool, default=True)
     parser.add_argument('--max_kmeans_iter', type=int, default=10)
     parser.add_argument('--k_means_init', type=int, default=10)
-    
+
     parser.add_argument('--model_name', type=str, default='vpt-model', help='Format is {model_name}_{pretrain}')
     parser.add_argument('--dataset_name', type=str, default='aircraft', help='options: cifar10, cifar100, scars')
     parser.add_argument('--prop_train_labels', type=float, default=0.5)
@@ -207,7 +206,8 @@ if __name__ == "__main__":
     print(f'Building datasets {args.dataset_name}')
     train_transform, test_transform = None, None
     train_dataset, test_dataset, unlabelled_train_examples_test, datasets = get_datasets(args.dataset_name,
-                                                                             train_transform, test_transform, args)
+                                                                                         train_transform,
+                                                                                         test_transform, args)
 
     # Set target transforms:
     target_transform_dict = {}
@@ -223,15 +223,15 @@ if __name__ == "__main__":
     train_dataset.target_transform = target_transform
 
     unlabelled_train_loader = DataLoader(unlabelled_train_examples_test, num_workers=args.num_workers,
-                                        batch_size=args.batch_size, shuffle=False)
+                                         batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, num_workers=args.num_workers,
-                                      batch_size=args.batch_size, shuffle=False)
+                             batch_size=args.batch_size, shuffle=False)
     train_loader = DataLoader(train_dataset, num_workers=args.num_workers,
                               batch_size=args.batch_size, shuffle=False)
 
     print('Performing SS-K-Means on all in the training data...')
     all_acc, old_acc, new_acc, _, kmeans = test_kmeans_semi_sup(train_loader, args, K=args.K)
-    if args.eval_test==True:
+    if args.eval_test == True:
         all_acc, old_acc, new_acc, _, kmeans = test_kmeans_inductive_gncd(test_loader, args, K=args.K)
     cluster_save_path = os.path.join(args.save_dir, 'ss_kmeans_cluster_centres.pt')
     torch.save(kmeans.cluster_centers_, cluster_save_path)

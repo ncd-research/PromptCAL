@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 from data.data_utils import subsample_instances
-from config import cifar_10_root, cifar_100_root
+from utils.config import cifar_10_root, cifar_100_root
 
 
 class CustomCIFAR10(CIFAR10):

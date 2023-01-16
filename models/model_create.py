@@ -31,7 +31,8 @@ def create_backbone(args, device):
         else:
             vptmodel.load_from_state_dict(state_dict, False)
         model = vptmodel
-        vpt_vit.configure_parameters(model=model, grad_layer=args.grad_from_block) ### configure parameters [freeze/unfreeze]
+        vpt_vit.configure_parameters(model=model,
+                                     grad_layer=args.grad_from_block)  ### configure parameters [freeze/unfreeze]
     else:
         ### ViT
         for m in model.parameters():
@@ -49,14 +50,14 @@ def create_backbone(args, device):
 def create_projection_head(args, device, use_checkpoint=True):
     """ create projection heads (with state_dict)"""
     projection_head = vits.__dict__['DINOHead'](in_dim=args.feat_dim,
-                            out_dim=args.mlp_out_dim, nlayers=args.num_mlp_layers)
+                                                out_dim=args.mlp_out_dim, nlayers=args.num_mlp_layers)
     projection_head.to(device)
-    if (args.load_from_head is not None) and (use_checkpoint==True):
+    if (args.load_from_head is not None) and (use_checkpoint == True):
         print(f'NOTE: load head from {args.load_from_head}')
         projection_head.load_state_dict(torch.load(args.load_from_head, map_location='cpu'), strict=True)
     return projection_head
-    
-    
+
+
 def create_model(args, device):
     """create backbone and projection head (with state_dict)"""
     model = create_backbone(args, device)

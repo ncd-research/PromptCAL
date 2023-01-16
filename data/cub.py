@@ -8,7 +8,7 @@ from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset
 
 from data.data_utils import subsample_instances
-from config import cub_root
+from utils.config import cub_root
 
 
 class CustomCub2011(Dataset):

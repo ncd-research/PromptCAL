@@ -3,8 +3,8 @@ from data.data_utils import MergedDataset
 from data.cifar import get_cifar_10_datasets, get_cifar_100_datasets
 from data.herbarium_19 import get_herbarium_datasets
 from data.stanford_cars import get_scars_datasets
-from data.imagenet import get_imagenet_100_gcd_datasets, get_imagenet_100_gcd_datasets_with_gcdval
-from data.cub import get_cub_datasets, get_cub_datasets_with_gcdval
+from data.imagenet import get_imagenet_100_gcd_datasets
+from data.cub import get_cub_datasets
 from data.fgvc_aircraft import get_aircraft_datasets
 
 from data.cifar import subsample_classes as subsample_dataset_cifar
@@ -14,17 +14,14 @@ from data.imagenet import subsample_classes as subsample_dataset_imagenet
 from data.cub import subsample_classes as subsample_dataset_cub
 from data.fgvc_aircraft import subsample_classes as subsample_dataset_air
 ### >>>
-from torchvision.datasets import ImageNet
 
 from copy import deepcopy
 import pickle
 import os
 
-from functools import partial
-
 import numpy as np
 
-from config import osr_split_dir
+from utils.config import osr_split_dir
 
 sub_sample_class_funcs = {
     'cifar10': subsample_dataset_cifar,

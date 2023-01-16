@@ -62,6 +62,5 @@ class FeatureVectorDataset(Dataset):
 
             return feature_vector, label, uq_idx
 
-
     def __len__(self):
         return len(self.base_dataset)

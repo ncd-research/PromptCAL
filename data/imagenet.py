@@ -6,7 +6,7 @@ import os
 from copy import deepcopy
 from data.data_utils import subsample_instances
 # from data_utils import subsample_instances
-from config import imagenet_root, imagenet_gcd_root
+from utils.config import imagenet_root, imagenet_gcd_root
 
 IN_SPLIT = ['n01443537', 'n01537544', 'n01631663', 'n01644373', 'n01692333', 
             'n01729977', 'n01775062', 'n01873310', 'n01914609', 'n02028035', 

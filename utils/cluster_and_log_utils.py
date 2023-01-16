@@ -1,4 +1,4 @@
-from project_utils.cluster_utils import cluster_acc, np, linear_assignment
+from utils.cluster_utils import cluster_acc, np, linear_assignment
 from torch.utils.tensorboard import SummaryWriter
 from typing import List
 

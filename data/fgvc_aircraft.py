@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 import numpy as np
 from copy import deepcopy
 
@@ -7,7 +6,7 @@ from torchvision.datasets.folder import default_loader
 from torch.utils.data import Dataset
 
 from data.data_utils import subsample_instances
-from config import aircraft_root
+from utils.config import aircraft_root
 
 def make_dataset(dir, image_ids, targets):
     assert(len(image_ids) == len(targets))

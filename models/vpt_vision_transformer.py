@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 from .vision_transformer import *
@@ -7,23 +6,23 @@ import numpy as np
 
 from functools import reduce
 from operator import mul
-        
+
 
 class VPT_ViT(VisionTransformer):
-    def __init__(self, img_size=[224], patch_size=16, in_chans=3, 
+    def __init__(self, img_size=[224], patch_size=16, in_chans=3,
                  num_classes=0, embed_dim=768, depth=12,
-                 num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, 
+                 num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None,
                  representation_size=None, distilled=False,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.,
                  norm_layer=nn.LayerNorm,
                  embed_layer=PatchEmbed,
                  num_prompts=1,
-                 vpt_dropout=0.0, 
+                 vpt_dropout=0.0,
                  n_shallow_prompts=0, **kwargs):
 
         # Recreate ViT
-        super(VPT_ViT, self).__init__(img_size, patch_size, in_chans, num_classes, 
-                                      embed_dim, depth, num_heads, mlp_ratio, 
+        super(VPT_ViT, self).__init__(img_size, patch_size, in_chans, num_classes,
+                                      embed_dim, depth, num_heads, mlp_ratio,
                                       qkv_bias, qk_scale,
                                       drop_rate, attn_drop_rate, drop_path_rate,
                                       norm_layer, **kwargs)
@@ -31,26 +30,26 @@ class VPT_ViT(VisionTransformer):
         ### initialize prompts
         self.num_prompts = num_prompts
         self.n_shallow_prompts = n_shallow_prompts
-        
-        assert self.n_shallow_prompts<self.num_prompts
-        
+
+        assert self.n_shallow_prompts < self.num_prompts
+
         self.prompt_tokens = nn.Parameter(torch.zeros(depth, self.num_prompts, embed_dim))
         self.vpt_drop = nn.ModuleList([nn.Dropout(p=vpt_dropout) for d in range(depth)])
-        
+
         ### re-initialize positional embedding
         num_patches = self.patch_embed.num_patches
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1 + self.num_prompts, embed_dim))
-        
+
         trunc_normal_(self.prompt_tokens, std=.02)
         trunc_normal_(self.pos_embed, std=.02)
-        
+
         with torch.no_grad():
             self.mask_vpt_pos_embed()
 
         return
-    
+
     def mask_vpt_pos_embed(self):
-        self.pos_embed[:, 1:self.num_prompts+1, :] = 0.0
+        self.pos_embed[:, 1:self.num_prompts + 1, :] = 0.0
         return
 
     def unfreeze_prompt(self):
@@ -58,27 +57,27 @@ class VPT_ViT(VisionTransformer):
             m.requires_grad = False
         self.prompt_tokens.requires_grad = True
         return
-    
+
     def load_from_state_dict(self, state_dict, strict=False):
         """ load state_dict from DINO pre-trained model
         """
         init_weight = self.pos_embed.data
-        pos_embed = state_dict.pop('pos_embed') # manual loading
+        pos_embed = state_dict.pop('pos_embed')  # manual loading
         init_weight[0, 0, :] = pos_embed[0, 0, :]
-        init_weight[0, 1+self.num_prompts:, :] = pos_embed[0, 1:, :]
+        init_weight[0, 1 + self.num_prompts:, :] = pos_embed[0, 1:, :]
         self.pos_embed.data = init_weight
         self.load_state_dict(state_dict, strict=strict)
         return
-    
+
     def interpolate_pos_encoding(self, x, w, h):
         npatch = x.shape[1] - 1 - self.num_prompts
         N = self.pos_embed.shape[1] - 1 - self.num_prompts
         if npatch == N and w == h:
             return self.pos_embed
-        
+
         ### TODO: test, corrected
-        class_pos_embed = self.pos_embed[:, :1+self.num_prompts, :]
-        patch_pos_embed = self.pos_embed[:, 1+self.num_prompts:, :]
+        class_pos_embed = self.pos_embed[:, :1 + self.num_prompts, :]
+        patch_pos_embed = self.pos_embed[:, 1 + self.num_prompts:, :]
         # print(f'class_pos_embed={class_pos_embed.shape} patch_pos_embed={patch_pos_embed.shape}')
         dim = x.shape[-1]
         w0 = w // self.patch_embed.patch_size
@@ -97,40 +96,41 @@ class VPT_ViT(VisionTransformer):
 
     def prepare_tokens(self, x):
         B, nc, w, h = x.shape
-        x = self.patch_embed(x) # B, L, D
-        
+        x = self.patch_embed(x)  # B, L, D
+
         # add the [CLS] and [PROMPT] token to the embed patch tokens
         cls_token = self.cls_token.expand(B, -1, -1)
         prompt_tokens = self.prompt_tokens[0].expand(B, -1, -1)
         prompt_tokens = self.vpt_drop[0](prompt_tokens)
-        x = torch.cat((cls_token, prompt_tokens, x), dim=1) # B, 1+P+L, D
+        x = torch.cat((cls_token, prompt_tokens, x), dim=1)  # B, 1+P+L, D
 
         # add positional encoding to each token
         x = x + self.interpolate_pos_encoding(x, w, h)
         return self.pos_drop(x)
 
     def forward(self, x, return_all_patches=False):
-        x = self.prepare_tokens(x) # B, L, D
+        x = self.prepare_tokens(x)  # B, L, D
         B = x.size(0)
-        n_vpt_layer = self.prompt_tokens.size(0)-1 
+        n_vpt_layer = self.prompt_tokens.size(0) - 1
         for idx_layer, blk in enumerate(self.blocks):
             x = blk(x)
-            if idx_layer<n_vpt_layer:
+            if idx_layer < n_vpt_layer:
                 ### exclude precedent prompts
-                a = x[:, 0, :].unsqueeze(1) if self.n_shallow_prompts==0 else x[:, :1+self.n_shallow_prompts, :]
-                c = x[:, self.num_prompts+1:, :]
+                a = x[:, 0, :].unsqueeze(1) if self.n_shallow_prompts == 0 else x[:, :1 + self.n_shallow_prompts, :]
+                c = x[:, self.num_prompts + 1:, :]
                 ### generate prompt input
-                b = self.prompt_tokens[idx_layer+1, self.n_shallow_prompts:, :].expand(B, -1, -1) # corrected by i+1, origical i
-                b = self.vpt_drop[idx_layer+1](b)
+                b = self.prompt_tokens[idx_layer + 1, self.n_shallow_prompts:, :].expand(B, -1,
+                                                                                         -1)  # corrected by i+1, origical i
+                b = self.vpt_drop[idx_layer + 1](b)
                 x = torch.cat([a, b, c], dim=1)
         x = self.norm(x)
         if return_all_patches:
             return x
         else:
             return x[:, 0]
-        
+
     def get_last_vpt_selfattention(self, x):
-        assert self.n_shallow_prompts==0
+        assert self.n_shallow_prompts == 0
         x = self.prepare_tokens(x)
         B = x.size(0)
         for i, blk in enumerate(self.blocks):
@@ -138,7 +138,7 @@ class VPT_ViT(VisionTransformer):
                 x = blk(x)
                 ### exclude precedent prompts
                 a = x[:, 0, :].unsqueeze(1)
-                c = x[:, self.num_prompts+1:, :]
+                c = x[:, self.num_prompts + 1:, :]
                 b = self.prompt_tokens[i, :, :].expand(B, -1, -1)
                 x = torch.cat([a, b, c], dim=1)
             else:
@@ -146,9 +146,9 @@ class VPT_ViT(VisionTransformer):
                 x, attn = blk(x, return_attention=True)
                 x = self.norm(x)
                 return x, attn
-            
+
     def get_intermediate_layers(self, x):
-        assert self.n_shallow_prompts==0
+        assert self.n_shallow_prompts == 0
         x = self.prepare_tokens(x)
         B = x.size(0)
         # we return the output tokens from the `n` last blocks
@@ -158,14 +158,13 @@ class VPT_ViT(VisionTransformer):
             output.append(self.norm(x))
             ### exclude precedent prompts
             a = x[:, 0, :].unsqueeze(1)
-            c = x[:, self.num_prompts+1:, :]
+            c = x[:, self.num_prompts + 1:, :]
             b = self.prompt_tokens[i, :, :].expand(B, -1, -1)
             x = torch.cat([a, b, c], dim=1)
         output = torch.stack(output, dim=1)
         return output
-        
-        
-        
+
+
 def vit_tiny(patch_size=16, num_prompts=1, **kwargs):
     model = VPT_ViT(
         patch_size=patch_size, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4,
@@ -201,8 +200,6 @@ def configure_parameters(model, grad_layer=11):
                 m.requires_grad = True
     return
 
-
-
 # if __name__=='__main__':
 #     model = VPT_ViT(num_prompts=2, vpt_type='shallow')
 #     model.unfreeze_prompt()
@@ -210,7 +207,7 @@ def configure_parameters(model, grad_layer=11):
 #     y = model(x)
 #     y.sum().backward()
 #     print(f'y={y.shape}')
-    
+
 #     model = VPT_ViT(num_prompts=2, vpt_type='deep')
 #     model.unfreeze_prompt()
 #     x = torch.rand(16,3,224,224)

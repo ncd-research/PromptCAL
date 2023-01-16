@@ -1,10 +1,5 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-import timm
-from torchvision import transforms
-import torchvision
 
 import argparse
 import os
@@ -19,18 +14,19 @@ from data.data_utils import MergedDataset
 from data.cub import CustomCub2011, cub_root
 from data.fgvc_aircraft import FGVCAircraft, aircraft_root
 
-from project_utils.general_utils import strip_state_dict, str2bool
+from utils.general_utils import str2bool
 from copy import deepcopy
 
-from config import feature_extract_dir, dino_pretrain_path
+from utils.config import feature_extract_dir, dino_pretrain_path
 
 ### >>>
 from models import vpt_vision_transformer as vpt_vit
+
+
 ### <<<
 
 
 def extract_features_dino(model, loader, save_dir):
-
     model.to(device)
     model.eval()
 
@@ -40,21 +36,18 @@ def extract_features_dino(model, loader, save_dir):
             images, labels, idxs = batch[:3]
             images = images.to(device)
 
-            features = model(images)         # CLS_Token for ViT, Average pooled vector for R50
+            features = model(images)  # CLS_Token for ViT, Average pooled vector for R50
 
             # Save features
             for f, t, uq in zip(features, labels, idxs):
-
                 t = t.item()
                 uq = uq.item()
 
                 save_path = os.path.join(save_dir, f'{t}', f'{uq}.npy')
                 torch.save(f.detach().cpu().numpy(), save_path)
-                
 
 
 def extract_features_timm(model, loader, save_dir):
-
     model.to(device)
     model.eval()
 
@@ -64,11 +57,10 @@ def extract_features_timm(model, loader, save_dir):
             images, labels, idxs = batch[:3]
             images = images.to(device)
 
-            features = model.forward_features(images)         # CLS_Token for ViT, Average pooled vector for R50
+            features = model.forward_features(images)  # CLS_Token for ViT, Average pooled vector for R50
 
             # Save features
             for f, t, uq in zip(features, labels, idxs):
-
                 t = t.item()
                 uq = uq.item()
 
@@ -79,12 +71,12 @@ def extract_features_timm(model, loader, save_dir):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-            description='cluster',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description='cluster',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--num_workers', default=8, type=int)
     parser.add_argument('--root_dir', type=str, default=feature_extract_dir)
-    parser.add_argument('--warmup_model_dir', 
+    parser.add_argument('--warmup_model_dir',
                         type=str,
                         default=None)
     parser.add_argument('--use_best_model', type=str, default='_best')
@@ -95,7 +87,7 @@ if __name__ == "__main__":
     parser.add_argument('--vpt_dropout', type=float, default=0.0)
     parser.add_argument('--num_prompts', type=int, default=5)
     parser.add_argument('--n_shallow_prompts', type=int, default=0)
-    
+
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--with_parallel', type=str2bool, default=False)
     # ----------------------
@@ -125,16 +117,16 @@ if __name__ == "__main__":
 
         _, val_transform = get_transform(args.transform, image_size=224, args=args)
 
-    elif args.model_name=='vpt-model':
+    elif args.model_name == 'vpt-model':
         extract_features_func = extract_features_dino
         args.interpolation = 3
         args.crop_pct = 0.875
         model = vpt_vit.__dict__['vit_base'](
-            num_prompts=args.num_prompts, 
+            num_prompts=args.num_prompts,
             vpt_dropout=args.vpt_dropout,
             n_shallow_prompts=args.n_shallow_prompts,
         )
-        
+
         _, val_transform = get_transform(args.transform, image_size=224, args=args)
     else:
 
@@ -142,15 +134,14 @@ if __name__ == "__main__":
 
     if args.warmup_model_dir is not None:
 
-
         if args.use_best_model:
             args.save_dir += args.use_best_model
-            args.warmup_model_dir = args.warmup_model_dir[:-3]+f'{args.use_best_model}.pt'
+            args.warmup_model_dir = args.warmup_model_dir[:-3] + f'{args.use_best_model}.pt'
 
         print(f'Using weights from {args.warmup_model_dir} ...')
         state_dict = torch.load(args.warmup_model_dir, map_location='cpu')
-        if args.with_parallel==True:
-            state_dict = {k[len('module.'):]:v for k, v in state_dict.items() if k[:len('module.')]=='module.'}
+        if args.with_parallel == True:
+            state_dict = {k[len('module.'):]: v for k, v in state_dict.items() if k[:len('module.')] == 'module.'}
             model.load_state_dict(state_dict)
             model = model.to(args.device)
         else:
@@ -180,7 +171,7 @@ if __name__ == "__main__":
         train_dataset = CarsDataset(train=True, transform=val_transform)
         test_dataset = CarsDataset(train=False, transform=val_transform)
         targets = list(set(train_dataset.target))
-        targets = [i - 1 for i in targets]          # SCars are labelled 1 - 197. Change to 0 - 196
+        targets = [i - 1 for i in targets]  # SCars are labelled 1 - 197. Change to 0 - 196
 
     elif args.dataset == 'herbarium_19':
 
@@ -188,14 +179,14 @@ if __name__ == "__main__":
                                            transform=val_transform)
 
         test_dataset = HerbariumDataset19(root=os.path.join(herbarium_dataroot, 'small-validation'),
-                                           transform=val_transform)
+                                          transform=val_transform)
 
         targets = list(set(train_dataset.targets))
-    
+
     elif args.dataset == 'imagenet_100_gcd':
         datasets = get_imagenet_100_gcd_datasets(train_transform=val_transform, test_transform=val_transform,
-                                             train_classes=range(50),
-                                             prop_train_labels=0.5)
+                                                 train_classes=range(50),
+                                                 prop_train_labels=0.5)
 
         datasets['train_labelled'].target_transform = None
         datasets['train_unlabelled'].target_transform = None
@@ -205,13 +196,13 @@ if __name__ == "__main__":
 
         test_dataset = datasets['test']
         targets = list(set(test_dataset.targets))
-        
+
     elif args.dataset == 'cub':
 
         train_dataset = CustomCub2011(root=cub_root, transform=val_transform, train=True)
         test_dataset = CustomCub2011(root=cub_root, transform=val_transform, train=False)
         targets = list(set(train_dataset.data.target.values))
-        targets = [i - 1 for i in targets]          # SCars are labelled 1 - 200. Change to 0 - 199
+        targets = [i - 1 for i in targets]  # SCars are labelled 1 - 200. Change to 0 - 199
 
     elif args.dataset == 'aircraft':
 
