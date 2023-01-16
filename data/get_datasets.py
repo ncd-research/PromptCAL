@@ -49,11 +49,10 @@ get_dataset_funcs = {
     'scars': get_scars_datasets,
 }
 
-
-
 from data.cifar import get_cifar_100_datasets_with_gcdval
 from data.cub import get_cub_datasets_with_gcdval
 from data.imagenet import get_imagenet_100_gcd_datasets_with_gcdval
+
 get_dataset_funcs_with_gcdval = {
     'cifar100': get_cifar_100_datasets_with_gcdval,
     'cub': get_cub_datasets_with_gcdval,
@@ -76,9 +75,9 @@ def get_datasets(dataset_name, train_transform, test_transform, args):
     # Get datasets
     get_dataset_f = get_dataset_funcs[dataset_name]
     datasets = get_dataset_f(train_transform=train_transform, test_transform=test_transform,
-                            train_classes=args.train_classes,
-                            prop_train_labels=args.prop_train_labels,
-                            split_train_val=False)
+                             train_classes=args.train_classes,
+                             prop_train_labels=args.prop_train_labels,
+                             split_train_val=False)
 
     # Set target transforms:
     target_transform_dict = {}
@@ -117,9 +116,9 @@ def get_datasets_with_gcdval(dataset_name, train_transform, test_transform, args
     # Get datasets
     get_dataset_f = get_dataset_funcs_with_gcdval[dataset_name]
     datasets = get_dataset_f(train_transform=train_transform, test_transform=test_transform,
-                            train_classes=args.train_classes,
-                            prop_train_labels=args.prop_train_labels,
-                            split_train_val=True, val_split=args.val_split)
+                             train_classes=args.train_classes,
+                             prop_train_labels=args.prop_train_labels,
+                             split_train_val=True, val_split=args.val_split)
 
     # Set target transforms:
     target_transform_dict = {}
@@ -139,16 +138,17 @@ def get_datasets_with_gcdval(dataset_name, train_transform, test_transform, args
     train_dataset = MergedDataset(labelled_dataset=deepcopy(datasets['train_labelled']),
                                   unlabelled_dataset=deepcopy(datasets['train_unlabelled']))
     val_dataset = MergedDataset(labelled_dataset=deepcopy(datasets['val'][0]),
-                                  unlabelled_dataset=deepcopy(datasets['val'][1]))
+                                unlabelled_dataset=deepcopy(datasets['val'][1]))
     test_dataset = datasets['test']
     unlabelled_train_examples_test = deepcopy(datasets['train_unlabelled'])
     unlabelled_train_examples_test.transform = test_transform
 
     return train_dataset, test_dataset, unlabelled_train_examples_test, val_dataset, datasets
+
+
 ### <<<
 
 def get_class_splits(args):
-
     # For FGVC datasets, optionally return bespoke splits
     if args.dataset_name in ('scars', 'cub', 'aircraft'):
         if hasattr(args, 'use_ssb_splits'):
@@ -170,27 +170,27 @@ def get_class_splits(args):
         args.image_size = 32
         args.train_classes = range(80)
         args.unlabeled_classes = range(80, 100)
-        
+
     elif args.dataset_name == 'cifar100_10':
         np.random.seed(0)
         args.image_size = 32
         ### use random generated classes
         # args.train_classes = np.random.choice(np.arange(100), size=10, replace=False).tolist()
         args.train_classes = [18, 49, 67, 16, 72, 14, 39, 47, 35, 88]
-        args.unlabeled_classes = list(set(range(100))-set(args.train_classes))
-        
+        args.unlabeled_classes = list(set(range(100)) - set(args.train_classes))
+
     elif args.dataset_name == 'cifar100_25':
         np.random.seed(0)
         args.image_size = 32
         args.train_classes = np.random.choice(np.arange(100), size=25, replace=False).tolist()
-        args.unlabeled_classes = list(set(range(100))-set(args.train_classes))
-        
+        args.unlabeled_classes = list(set(range(100)) - set(args.train_classes))
+
     elif args.dataset_name == 'cifar100_50':
         np.random.seed(0)
         args.image_size = 32
         args.train_classes = np.random.choice(np.arange(100), size=50, replace=False).tolist()
-        args.unlabeled_classes = list(set(range(100))-set(args.train_classes))
-    
+        args.unlabeled_classes = list(set(range(100)) - set(args.train_classes))
+
 
     elif args.dataset_name == 'herbarium_19':
 
@@ -202,7 +202,7 @@ def get_class_splits(args):
 
         args.train_classes = class_splits['Old']
         args.unlabeled_classes = class_splits['New']
-        
+
     elif args.dataset_name == 'imagenet_100_gcd':
 
         args.image_size = 224
@@ -268,4 +268,3 @@ def get_class_splits(args):
         raise NotImplementedError
 
     return args
-

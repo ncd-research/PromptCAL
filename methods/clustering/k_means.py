@@ -190,13 +190,12 @@ if __name__ == "__main__":
     print(args)
 
     if args.warmup_model_exp_id is not None:
-
-        if args.use_best_model:
-            args.save_dir += args.use_best_model
-
         print(f'Using features from experiment: {args.warmup_model_exp_id}')
     else:
         print(f'Using pretrained {args.model_name} features...')
+
+    if args.use_best_model:
+        args.save_dir += args.use_best_model
 
     print(args.save_dir)
 
