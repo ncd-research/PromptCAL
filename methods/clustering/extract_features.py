@@ -90,13 +90,14 @@ if __name__ == "__main__":
 
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--with_parallel', type=str2bool, default=False)
+    parser.add_argument('--save_name', type=str, default='')
     # ----------------------
     # INIT
     # ----------------------
     args = parser.parse_args()
     device = torch.device(args.device)
 
-    args.save_dir = os.path.join(args.root_dir, f'{args.model_name}_{args.dataset}')
+    args.save_dir = os.path.join(args.root_dir, f'{args.dataset}/{args.save_name}')
     print(args)
 
     print('Loading model...')
@@ -135,7 +136,6 @@ if __name__ == "__main__":
     if args.warmup_model_dir is not None:
 
         if args.use_best_model:
-            args.save_dir += args.use_best_model
             args.warmup_model_dir = args.warmup_model_dir[:-3] + f'{args.use_best_model}.pt'
 
         print(f'Using weights from {args.warmup_model_dir} ...')

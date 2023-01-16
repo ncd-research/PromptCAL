@@ -171,6 +171,7 @@ if __name__ == "__main__":
     parser.add_argument('--eval_funcs', nargs='+', help='Which eval functions to use', default=['v1', 'v2'])
     parser.add_argument('--use_ssb_splits', type=str2bool, default=True)
     parser.add_argument('--eval_test', type=str2bool, default=False)
+    parser.add_argument('--save_name', type=str, default='')
 
     # ----------------------
     # INIT
@@ -178,7 +179,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     cluster_accs = {}
     seed_torch(0)
-    args.save_dir = os.path.join(args.root_dir, f'{args.model_name}_{args.dataset_name}')
+    args.save_dir = os.path.join(args.root_dir, f'{args.dataset}/{args.save_name}')
 
     args = get_class_splits(args)
 
@@ -193,9 +194,6 @@ if __name__ == "__main__":
         print(f'Using features from experiment: {args.warmup_model_exp_id}')
     else:
         print(f'Using pretrained {args.model_name} features...')
-
-    if args.use_best_model:
-        args.save_dir += args.use_best_model
 
     print(args.save_dir)
 

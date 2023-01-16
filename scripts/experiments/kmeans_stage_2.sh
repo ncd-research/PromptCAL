@@ -1,5 +1,10 @@
 cd ../../
 
+echo
+echo -n "* Please select GPU ID: "
+read -r num
+GPU="${num}"
+
 SAVE_DIR=/data01/yuho_hdd/PromptCAL/cache
 mkdir -p ${SAVE_DIR}/kmeans
 
@@ -11,9 +16,10 @@ python -m methods.clustering.extract_features \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --n_shallow_prompts 0 \
-  --with_parallel 'False'
+  --with_parallel 'False' \
+  --save_name stage_2
 
 python -m methods.clustering.k_means \
   --dataset scars \
@@ -22,8 +28,9 @@ python -m methods.clustering.k_means \
   --max_kmeans_iter 200 \
   --k_means_init 100 \
   --model_name 'vpt-model' \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --eval_test 'False' \
+  --save_name stage_2 \
   >> ${SAVE_DIR}/kmeans/stage_2_scars.out
 
 python -m methods.clustering.extract_features \
@@ -32,9 +39,10 @@ python -m methods.clustering.extract_features \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --n_shallow_prompts 0 \
-  --with_parallel 'False'
+  --with_parallel 'False' \
+  --save_name stage_2
 
 python -m methods.clustering.k_means \
   --dataset cifar100 \
@@ -43,8 +51,9 @@ python -m methods.clustering.k_means \
   --max_kmeans_iter 200 \
   --k_means_init 100 \
   --model_name 'vpt-model' \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --eval_test 'False' \
+  --save_name stage_2 \
   >> ${SAVE_DIR}/kmeans/stage_2_cifar100.out
 
 python -m methods.clustering.extract_features \
@@ -53,9 +62,10 @@ python -m methods.clustering.extract_features \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --n_shallow_prompts 0 \
-  --with_parallel 'False'
+  --with_parallel 'False' \
+  --save_name stage_2
 
 python -m methods.clustering.k_means \
   --dataset cub \
@@ -64,8 +74,9 @@ python -m methods.clustering.k_means \
   --max_kmeans_iter 200 \
   --k_means_init 100 \
   --model_name 'vpt-model' \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --eval_test 'False' \
+  --save_name stage_2 \
   >> ${SAVE_DIR}/kmeans/stage_2_cub1.out
 
 python -m methods.clustering.k_means \
@@ -75,6 +86,7 @@ python -m methods.clustering.k_means \
   --max_kmeans_iter 200 \
   --k_means_init 200 \
   --model_name 'vpt-model' \
-  --device 'cuda:7' \
+  --device "cuda:${GPU}" \
   --eval_test 'False' \
+  --save_name stage_2 \
   >> ${SAVE_DIR}/kmeans/stage_2_cub2.out
