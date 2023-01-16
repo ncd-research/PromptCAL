@@ -159,7 +159,6 @@ if __name__ == "__main__":
     parser.add_argument('--K', default=None, type=int, help='Set manually to run with custom K')
     parser.add_argument('--root_dir', type=str, default=feature_extract_dir)
     parser.add_argument('--warmup_model_exp_id', type=str, default=None)
-    parser.add_argument('--use_best_model', type=str, default='_best')
     parser.add_argument('--spatial', type=str2bool, default=False)
     parser.add_argument('--semi_sup', type=str2bool, default=True)
     parser.add_argument('--max_kmeans_iter', type=int, default=10)
@@ -179,7 +178,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     cluster_accs = {}
     seed_torch(0)
-    args.save_dir = os.path.join(args.root_dir, f'{args.dataset}/{args.save_name}')
+    args.save_dir = os.path.join(args.root_dir, f'{args.dataset_name}/{args.save_name}')
 
     args = get_class_splits(args)
 

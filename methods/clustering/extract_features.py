@@ -79,7 +79,6 @@ if __name__ == "__main__":
     parser.add_argument('--warmup_model_dir',
                         type=str,
                         default=None)
-    parser.add_argument('--use_best_model', type=str, default='_best')
     parser.add_argument('--model_name', type=str, default='vpt-model', help='Format is {model_name}_{pretrain}')
     parser.add_argument('--dataset', type=str, default='aircraft', help='options: cifar10, cifar100, scars')
     parser.add_argument('--transform', type=str, default='imagenet')
@@ -134,9 +133,6 @@ if __name__ == "__main__":
         raise NotImplementedError
 
     if args.warmup_model_dir is not None:
-
-        if args.use_best_model:
-            args.warmup_model_dir = args.warmup_model_dir[:-3] + f'{args.use_best_model}.pt'
 
         print(f'Using weights from {args.warmup_model_dir} ...')
         state_dict = torch.load(args.warmup_model_dir, map_location='cpu')

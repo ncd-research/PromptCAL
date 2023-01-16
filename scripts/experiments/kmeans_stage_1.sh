@@ -12,7 +12,7 @@ mkdir -p ${SAVE_DIR}/kmeans
 
 python -m methods.clustering.extract_features \
   --dataset scars \
-  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/scars/model.pt' \
+  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/scars/model_best.pt' \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \
@@ -35,7 +35,7 @@ python -m methods.clustering.k_means \
 
 python -m methods.clustering.extract_features \
   --dataset cifar100 \
-  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/cifar100/model.pt' \
+  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/cifar100/model_best.pt' \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \
@@ -58,7 +58,7 @@ python -m methods.clustering.k_means \
 
 python -m methods.clustering.extract_features \
   --dataset cub \
-  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/cub/model.pt' \
+  --warmup_model_dir '/data01/yuho_hdd/refactored_gcd/cache/promptcal/stage1/cub/model_best.pt' \
   --model_name 'vpt-model' \
   --transform 'imagenet' \
   --num_prompts 5 \
